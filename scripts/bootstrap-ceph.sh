@@ -38,6 +38,7 @@ prepare_node() {
     echo "  Preparing $name ($ip)..."
     ssh -o StrictHostKeyChecking=no "ubuntu@$ip" bash -s <<'REMOTE'
         sudo apt-get update -qq
+        sudo apt-get upgrade -y -qq
         sudo apt-get install -y -qq python3 lvm2 chrony podman
         sudo systemctl enable --now chrony
 REMOTE
