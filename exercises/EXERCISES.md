@@ -81,15 +81,17 @@ ceph osd df          # Note data distribution
 
 ### 1.2 Break it
 
-Pick an OSD (say osd.0). SSH to the host it lives on and stop it:
+Pick an OSD (say osd.0) and stop it. `ceph orch` is an orchestrator command —
+the admin node dispatches it to whichever host runs that OSD, so you do not
+need to SSH anywhere. (The OSD hosts do not have `cephadm` installed; only
+the admin and MON nodes do.)
 
 ```bash
-# Find which host osd.0 lives on
+# (Optional) See which host osd.0 lives on
 ceph osd find 0
 
-# SSH to that OSD host and stop the daemon
-ssh ubuntu@<OSD_HOST_IP>
-sudo cephadm shell -- ceph orch daemon stop osd.0
+# Stop the daemon (from the admin node)
+ceph orch daemon stop osd.0
 ```
 
 ### 1.3 Observe the damage
@@ -121,11 +123,10 @@ missing replicas on the remaining OSDs.
 ### 1.5 Fix it
 
 ```bash
-# Restart the OSD
-ssh ubuntu@<OSD_HOST_IP>
-sudo cephadm shell -- ceph orch daemon start osd.0
+# Restart the OSD (from the admin node)
+ceph orch daemon start osd.0
 
-# Back on admin, watch recovery
+# Watch recovery
 ceph -w
 ceph osd tree        # osd.0 should come back as "up" and "in"
 ```
@@ -415,8 +416,8 @@ ceph osd out osd.0
 ceph -w
 # Wait until all PGs are active+clean
 
-# Stop the daemon
-ssh ubuntu@<OSD_HOST> sudo cephadm shell -- ceph orch daemon stop osd.0
+# Stop the daemon (from the admin node)
+ceph orch daemon stop osd.0
 
 # Remove from CRUSH map
 ceph osd crush remove osd.0
