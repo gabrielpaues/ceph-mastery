@@ -38,8 +38,7 @@ prepare_node() {
     echo "  Preparing $name ($ip)..."
     ssh -o StrictHostKeyChecking=no "ubuntu@$ip" bash -s <<'REMOTE'
         sudo apt-get update -qq
-        sudo apt-get install -y -qq python3 lvm2 chrony
-        # Ensure time sync is running (critical for Ceph)
+        sudo apt-get install -y -qq python3 lvm2 chrony podman
         sudo systemctl enable --now chrony
 REMOTE
 }
@@ -56,7 +55,7 @@ echo ""
 echo ">>> Step 2: Installing cephadm on admin node..."
 
 sudo apt-get update -qq
-sudo apt-get install -y -qq python3 lvm2 chrony cephadm
+sudo apt-get install -y -qq python3 lvm2 chrony podman cephadm
 
 # ----------------------------------------------------------
 # Step 3: Bootstrap the cluster on the MON node
@@ -65,11 +64,15 @@ echo ""
 echo ">>> Step 3: Bootstrapping Ceph cluster..."
 echo "  (This installs the first MON + MGR on $MON_IP)"
 
-# Copy cephadm to the MON node and bootstrap there
-scp -o StrictHostKeyChecking=no /usr/sbin/cephadm "ubuntu@$MON_IP:/tmp/cephadm"
+# Install cephadm on the MON node via apt (scp of the binary breaks in Reef+
+# because cephadm now depends on the cephadmlib package)
+ssh -o StrictHostKeyChecking=no "ubuntu@$MON_IP" bash -s <<'PREREMOTE'
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq cephadm
+PREREMOTE
+
 ssh -o StrictHostKeyChecking=no "ubuntu@$MON_IP" bash -s <<REMOTE
-    sudo chmod +x /tmp/cephadm
-    sudo /tmp/cephadm bootstrap \
+    sudo cephadm bootstrap \
         --mon-ip $MON_IP \
         --initial-dashboard-user admin \
         --initial-dashboard-password ceph-lab-2024 \
@@ -87,7 +90,8 @@ ssh "ubuntu@$MON_IP" 'sudo cat /etc/ceph/ceph.client.admin.keyring' > /tmp/ceph.
 sudo mkdir -p /etc/ceph
 sudo cp /tmp/ceph.conf /etc/ceph/ceph.conf
 sudo cp /tmp/ceph.client.admin.keyring /etc/ceph/ceph.client.admin.keyring
-sudo chmod 600 /etc/ceph/ceph.client.admin.keyring
+sudo chmod 640 /etc/ceph/ceph.client.admin.keyring
+sudo chown root:ubuntu /etc/ceph/ceph.client.admin.keyring
 
 # Install ceph-common for CLI tools on admin
 sudo cephadm install ceph-common
