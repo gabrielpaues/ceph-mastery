@@ -1,0 +1,19 @@
+# ============================================================
+# Copy this to terraform.tfvars and adjust to your environment
+# ============================================================
+
+key_pair_name = "your-keypair-name"
+network       = "default"
+image         = "ubuntu-24.04"
+cluster_name  = "ceph-lab"
+
+# Flavors - adjust based on `openstack flavor list`
+# l2 flavors have local NVMe disk, b2 flavors boot from volume
+mon_flavor   = "l2.c2r4.100"
+osd_flavor   = "l2.c2r4.100"
+admin_flavor = "l2.c2r4.100"
+
+# OSD data disk settings
+osd_count     = 3
+osd_disk_size = 30
+osd_disk_type = "fast"
